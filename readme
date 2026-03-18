@@ -1,0 +1,5 @@
+pio run -e transmitter_hw --target upload
+pio run -e receiver_hw --target upload
+pio run -e transmitter2_esp8266 --target upload
+
+we have one transmiter and one reciver right we create two transmitter and one recvier . now 

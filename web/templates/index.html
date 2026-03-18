@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environmental Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e17;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --accent-temp: #ff5f6d;
+            --accent-hum: #2193b0;
+            --text-main: #ffffff;
+            --text-dim: #94a3b8;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            background-image: radial-gradient(circle at 50% -20%, #1e293b, var(--bg));
+            color: var(--text-main);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .layout-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        /* LEFT QUARTER: HISTORY */
+        .history-sidebar {
+            flex: 0 0 25%;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .history-sidebar h2 {
+            margin-top: 0;
+            font-weight: 300;
+            letter-spacing: 2px;
+            font-size: 1.2rem;
+            color: var(--text-dim);
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+        }
+
+        .history-content {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-right: 5px;
+        }
+
+        /* CUSTOM SCROLLBAR */
+        .history-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .history-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .history-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 10px 5px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.85rem;
+        }
+
+        th {
+            color: var(--text-dim);
+            font-weight: 300;
+            position: sticky;
+            top: 0;
+            background: #111824;
+            z-index: 10;
+        }
+
+        /* MAIN DASHBOARD AREA */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px 30px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .header h1 {
+            font-weight: 300;
+            letter-spacing: 3px;
+            color: var(--text-dim);
+            margin: 0;
+            font-size: 1.8rem;
+        }
+
+        .datetime {
+            text-align: right;
+        }
+
+        .datetime #clock {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .datetime #calendar {
+            font-size: 1rem;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+        }
+
+        .nodes-grid {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .node-section {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .node1-pos {
+            grid-column: 1 / 2;
+            grid-row: 1 / 2;
+        }
+
+        .node2-pos {
+            grid-column: 2 / 3;
+            grid-row: 1 / 2;
+        }
+
+        .node3-pos {
+            grid-column: 1 / 2;
+            grid-row: 2 / 3;
+        }
+
+        .sys-pos {
+            grid-column: 2 / 3;
+            grid-row: 2 / 3;
+        }
+
+        .node-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .node-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .node-meta {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-align: right;
+        }
+
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 15px;
+            flex-grow: 1;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+        }
+
+        .card-title {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .value {
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+
+        .unit {
+            font-size: 0.9rem;
+            font-weight: 300;
+            vertical-align: super;
+        }
+
+        .temp .value {
+            color: var(--accent-temp);
+        }
+
+        .hum .value {
+            color: var(--accent-hum);
+        }
+
+        .fault .value {
+            color: #f59e0b;
+        }
+
+        .aux .value {
+            color: #8b5cf6;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: #22c55e;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .temp-col {
+            color: var(--accent-temp);
+        }
+
+        .hum-col {
+            color: var(--accent-hum);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layout-container">
+        <!-- LEFT QUARTER: FULL HISTORY -->
+        <div class="history-sidebar">
+            <h2>NETWORK LOGS</h2>
+            <div class="history-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Node</th>
+                            <th>Time</th>
+                            <th>Seq</th>
+                            <th>Temp</th>
+                            <th>Hum</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body">
+                        <tr>
+                            <td colspan="5">Waiting for connection...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDE: DASHBOARD -->
+        <div class="main-content">
+            <!-- HEADER WITH CLOCK -->
+            <div class="header">
+                <h1>COMMAND CENTER</h1>
+                <div class="datetime">
+                    <div id="clock">--:--:--</div>
+                    <div id="calendar">--- --, ----</div>
+                </div>
+            </div>
+
+            <!-- NODE GRID (Top-Left N1, Bottom-Right N2) -->
+            <div class="nodes-grid">
+
+                <!-- NODE 1 (TOP LEFT) -->
+                <div class="node-section node1-pos">
+                    <div class="node-header">
+                        <div class="node-title">
+                            <span class="status-dot"></span> NODE 1 (ESP32)
+                        </div>
+                        <div class="node-meta">
+                            <div id="n1-time">Last Update: Waiting...</div>
+                            <div>Sequence: #<span id="n1-seq">0</span></div>
+                        </div>
+                    </div>
+                    <div class="dashboard-cards">
+                        <div class="card temp">
+                            <div class="card-title">Temperature</div>
+                            <div><span class="value" id="n1-temp">--</span><span class="unit">°C</span></div>
+                        </div>
+                        <div class="card hum">
+                            <div class="card-title">Humidity</div>
+                            <div><span class="value" id="n1-hum">--</span><span class="unit">%</span></div>
+                        </div>
+                        <div class="card fault">
+                            <div class="card-title">Fault Rate</div>
+                            <div><span class="value" id="n1-fault">--</span><span class="unit">%</span></div>
+                        </div>
+                        <div class="card aux">
+                            <div class="card-title">Pressure</div>
+                            <div><span class="value" id="n1-press">1013</span><span class="unit">hPa</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NODE 2 (TOP RIGHT) -->
+                <div class="node-section node2-pos">
+                    <div class="node-header">
+                        <div class="node-title">
+                            <span class="status-dot" style="background: #3b82f6;"></span> NODE 2 (ESP8266)
+                        </div>
+                        <div class="node-meta">
+                            <div id="n2-time">Last Update: Waiting...</div>
+                            <div>Sequence: #<span id="n2-seq">0</span></div>
+                        </div>
+                    </div>
+                    <div class="dashboard-cards">
+                        <div class="card temp">
+                            <div class="card-title">Temperature</div>
+                            <div><span class="value" id="n2-temp">--</span><span class="unit">°C</span></div>
+                        </div>
+                        <div class="card hum">
+                            <div class="card-title">Humidity</div>
+                            <div><span class="value" id="n2-hum">--</span><span class="unit">%</span></div>
+                        </div>
+                        <div class="card fault">
+                            <div class="card-title">Fault Rate</div>
+                            <div><span class="value" id="n2-fault">--</span><span class="unit">%</span></div>
+                        </div>
+                        <div class="card aux">
+                            <div class="card-title">Air Quality</div>
+                            <div><span class="value" id="n2-iaq">42</span><span class="unit">AQI</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NODE 3 (BOTTOM LEFT) - VIRTUAL TESTING -->
+                <div class="node-section node3-pos">
+                    <div class="node-header">
+                        <div class="node-title">
+                            <span class="status-dot" style="background: #a855f7;"></span> NODE 3 (ESP32S)
+                        </div>
+                        <div class="node-meta">
+                            <div id="n3-time">Last Update: Waiting...</div>
+                            <div>Sequence: #<span id="n3-seq">0</span></div>
+                        </div>
+                    </div>
+                    <div class="dashboard-cards">
+                        <div class="card temp">
+                            <div class="card-title">Temperature</div>
+                            <div><span class="value" id="n3-temp">--</span><span class="unit">°C</span></div>
+                        </div>
+                        <div class="card hum">
+                            <div class="card-title">Humidity</div>
+                            <div><span class="value" id="n3-hum">--</span><span class="unit">%</span></div>
+                        </div>
+                        <div class="card fault">
+                            <div class="card-title">Fault Rate</div>
+                            <div><span class="value" id="n3-fault">0.0</span><span class="unit">%</span></div>
+                        </div>
+                        <div class="card aux">
+                            <div class="card-title">Soil Moisture</div>
+                            <div><span class="value" id="n3-soil">--</span><span class="unit">%</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SYSTEM DIAGNOSTICS (BOTTOM RIGHT) -->
+                <div class="node-section sys-pos">
+                    <div class="node-header">
+                        <div class="node-title">
+                            <span class="status-dot" style="background: #eab308;"></span> SYSTEM ANALYTICS
+                        </div>
+                        <div class="node-meta">
+                            <div>Network: Stable</div>
+                            <div>Latency: <span id="sys-ping">15</span>ms</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-cards">
+                        <div class="card" style="grid-column: span 2;">
+                            <div class="card-title">Total Processed Packets</div>
+                            <div><span class="value" id="sys-packets" style="color: #eab308;">0</span><span
+                                    class="unit">pkts</span></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-title">Uptime</div>
+                            <div><span class="value" id="sys-uptime" style="color: var(--text-main);">0</span><span
+                                    class="unit">min</span></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-title">Mem Load</div>
+                            <div><span class="value" id="sys-mem" style="color: var(--text-main);">--</span><span
+                                    class="unit">%</span></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getVal(data, key1, key2) {
+            return (data[key1] !== undefined ? data[key1] : data[key2]) || 0;
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('en-US', { hour12: false });
+            document.getElementById('calendar').innerText = now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+        async function updateData() {
+            try {
+                const response = await fetch('/api/data');
+                const data = await response.json();
+                let n1 = data.node1;
+                document.getElementById('n1-temp').innerText = getVal(n1, 't', 'temp_C').toFixed(1);
+                document.getElementById('n1-hum').innerText = getVal(n1, 'h', 'humidity').toFixed(1);
+                document.getElementById('n1-seq').innerText = n1.seq;
+                document.getElementById('n1-fault').innerText = n1.fault_rate.toFixed(1);
+                document.getElementById('n1-time').innerText = "Last Update: " + n1.time;
+
+                let n2 = data.node2;
+                document.getElementById('n2-temp').innerText = getVal(n2, 't', 'temp_C').toFixed(1);
+                document.getElementById('n2-hum').innerText = getVal(n2, 'h', 'humidity').toFixed(1);
+                document.getElementById('n2-seq').innerText = n2.seq;
+                document.getElementById('n2-fault').innerText = n2.fault_rate.toFixed(1);
+                document.getElementById('n2-time').innerText = "Last Update: " + n2.time;
+                document.getElementById('n1-press').innerText = (1013 + (Math.random() * 2 - 1)).toFixed(1);
+                document.getElementById('n2-iaq').innerText = Math.floor(40 + Math.random() * 10);
+
+                // Update Node 3 (Now real data)
+                let n3 = data.node3;
+                document.getElementById('n3-temp').innerText = getVal(n3, 't', 'temp_C').toFixed(1);
+                document.getElementById('n3-hum').innerText = getVal(n3, 'h', 'humidity').toFixed(1);
+                document.getElementById('n3-seq').innerText = n3.seq;
+                document.getElementById('n3-fault').innerText = n3.fault_rate.toFixed(1);
+                document.getElementById('n3-time').innerText = "Last Update: " + n3.time;
+                document.getElementById('n3-soil').innerText = Math.floor(60 + Math.random() * 20); // Soil is still mock aux
+
+                // Update System Diagnostics
+                let n1_pack = parseInt(document.getElementById('n1-seq').innerText) || 0;
+                let n2_pack = parseInt(document.getElementById('n2-seq').innerText) || 0;
+                let n3_pack = parseInt(document.getElementById('n3-seq').innerText) || 0;
+                document.getElementById('sys-packets').innerText = n1_pack + n2_pack + n3_pack;
+
+                if (!window.startTime) { window.startTime = new Date(); }
+                document.getElementById('sys-uptime').innerText = Math.floor((new Date() - window.startTime) / 60000);
+                document.getElementById('sys-mem').innerText = (40 + Math.random() * 5).toFixed(1);
+                document.getElementById('sys-ping').innerText = Math.floor(10 + Math.random() * 15);
+
+                refreshHistory();
+            } catch (err) {
+                console.error("Fetch error:", err);
+            }
+        }
+
+        async function refreshHistory() {
+            try {
+                const response = await fetch('/api/history');
+                const history = await response.json();
+
+                const tbody = document.getElementById('history-body');
+                tbody.innerHTML = '';
+                if (history.node1.length === 0 && history.node2.length === 0 && (!history.node3 || history.node3.length === 0)) {
+                    tbody.innerHTML = '<tr><td colspan="5">No data yet...</td></tr>';
+                    return;
+                }
+
+                let combined = [];
+                if (history.node1) history.node1.forEach(r => combined.push({ ...r, node: "N1" }));
+                if (history.node2) history.node2.forEach(r => combined.push({ ...r, node: "N2" }));
+                if (history.node3) history.node3.forEach(r => combined.push({ ...r, node: "N3" }));// n# is added 
+
+                // Sort by time (hacky string comparison works okay for display)
+                combined.sort((a, b) => {
+                    if (a.time < b.time) return 1;
+                    if (a.time > b.time) return -1;
+                    return 0;
+                });
+
+                combined.forEach(row => {
+                    if (!row.time || row.time.includes("Waiting")) return;
+                    let tr = document.createElement('tr');
+                    let t = getVal(row, 't', 'temp_C').toFixed(1);
+                    let h = getVal(row, 'h', 'humidity').toFixed(1);
+
+                    let nodeColor = row.node === 'N1' ? '#fff' : (row.node === 'N2' ? '#3b82f6' : '#a855f7');
+
+                    tr.innerHTML = `
+                        <td style="color: ${nodeColor}; font-weight: bold;">${row.node}</td>
+                        <td style="color: var(--text-dim)">${row.time}</td>
+                        <td style="color: var(--text-dim)">#${row.seq}</td>
+                        <td class="temp-col">${t}°C</td>
+                        <td class="hum-col">${h}%</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error("History fetch error:", err);
+            }
+        }
+
+        // Fast update
+        setInterval(updateData, 30000);
+        updateData();
+    </script>
+</body>
+
+</html>
